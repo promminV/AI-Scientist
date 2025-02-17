@@ -324,11 +324,11 @@ if __name__ == "__main__":
         args.parallel = len(available_gpus)
 
     print(f"Using GPUs: {available_gpus}")
-
+    '''
     # Check LaTeX dependencies before proceeding
     if args.writeup == "latex" and not check_latex_dependencies():
         sys.exit(1)
-
+    '''
     # Create client
     client, client_model = create_client(args.model)
 
