@@ -1,0 +1,10 @@
+[
+    {
+        "Name": "ai_collaborative_brainstorming_agent",
+        "Title": "AI-Powered Collaborative Brainstorming Agent",
+        "Experiment": "Develop a conversational AI system that interacts with researchers to generate and refine research ideas. The agent should be fine-tuned on past research ideas, proposals, and reviewer feedback. Implement a reinforcement learning loop where researcher interactions improve the AI’s ability to generate high-quality, innovative ideas. Evaluate by measuring novelty scores and researcher satisfaction compared to traditional brainstorming sessions.",
+        "Interestingness": 8,
+        "Feasibility": 8,
+        "Novelty": 8
+    }
+]
