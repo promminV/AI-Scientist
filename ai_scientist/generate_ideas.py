@@ -209,7 +209,7 @@ def generate_next_idea(
                     idea_strings.append(json.dumps(idea))
                 prev_ideas_string = "\n\n".join(idea_strings)
 
-                msg_history = []
+                msg_history = []  # msg_history reset every idea-refinement attemption, used for reflection only
                 print(f"Iteration 1/{num_reflections}")
                 text, msg_history = get_response_from_llm(
                     idea_first_prompt.format(
@@ -464,7 +464,7 @@ def check_idea_novelty(
                     papers_str = "No papers found."
 
                 paper_strings = []
-                for i, paper in enumerate(papers):
+                for i, paper in enumerate(papers):  # 10 papers (limit numbers set in the search_for_paper)
                     paper_strings.append(
                         """{i}: {title}. {authors}. {venue}, {year}.\nNumber of citations: {cites}\nAbstract: {abstract}""".format(
                             i=i,
@@ -476,7 +476,7 @@ def check_idea_novelty(
                             abstract=paper["abstract"],
                         )
                     )
-                papers_str = "\n\n".join(paper_strings)
+                papers_str = "\n\n".join(paper_strings) # feed into LLM to judge novelty of an idea.
 
             except Exception as e:
                 print(f"Error: {e}")
