@@ -97,7 +97,7 @@ def generate_ideas(
 
     idea_str_archive = []
     # tracking
-    tracking_data = []
+    tracking_gen_idea = {}
 
     with open(osp.join(base_dir, "seed_ideas.json"), "r") as f:
         seed_ideas = json.load(f)
@@ -137,6 +137,20 @@ def generate_ideas(
             assert json_output is not None, "Failed to extract JSON from LLM output"
             print(json_output)
 
+            # tracking
+            idea_name = json_output["Name"]
+            if idea_name not in tracking_gen_idea:
+                tracking_gen_idea[idea_name] = {}
+            
+            tracking_gen_idea[idea_name][1] = {
+                "generated_idea": json_output,
+                "converged": False
+            }
+
+            
+            #tracking
+            converged = False
+
             # Iteratively improve task.
             if num_reflections > 1:
                 for j in range(num_reflections - 1):
@@ -158,19 +172,20 @@ def generate_ideas(
                     print(json_output)
                     
                     # tracking
-                    tracking_data.append({
-                        "idea_name": json_output["Name"],
-                        "iteration": j+2,
-                        "generated_idea": json_output,
-                        "converged": False,
-                    })
+                    tracking_gen_idea[idea_name][j+2] = {
+                        "generated_idea" : json_output,
+                        "converged" : False
+                    }
 
                     if "I am done" in text:
                         print(f"Idea generation converged after {j + 2} iterations.")
-                        
-                        # tracking
-                        tracking_data[-1]["converged"] = True
+                        #tracking
+                        tracking_gen_idea[idea_name][j+2]["converged"] = True
+                        converged=True
                         break
+            # tracking
+            if not converged:
+                tracking_gen_idea[idea_name][num_reflections]["converged"] = True
 
             idea_str_archive.append(json.dumps(json_output))
         except Exception as e:
@@ -431,7 +446,11 @@ def check_idea_novelty(
         task_description = prompt["task_description"]
 
     # tracking 
-    tracking_data = []
+    tracking_llm_novelty = {}
+    # tracking
+    retrieved_papers = {}
+
+
 
     for idx, idea in enumerate(ideas):
         if "novel" in idea:
@@ -443,6 +462,12 @@ def check_idea_novelty(
         novel = False
         msg_history = []
         papers_str = ""
+
+        # tracking
+        if idea["Name"] not in tracking_llm_novelty:
+            tracking_llm_novelty[idea["Name"]] = {}
+        if idea["Name"] not in retrieved_papers:
+            retrieved_papers[idea["Name"]] = {}
 
         for j in range(max_num_iterations):
             try:
@@ -462,20 +487,22 @@ def check_idea_novelty(
                     ),
                     msg_history=msg_history,
                 )
-
                 # tracking
-                tracking_data.append({
-                    "idea" : idea["Name"],
-                    "iteration" : j+1,
-                    "llm_response" : text
-                })
+                if j+1 not in tracking_llm_novelty[idea["Name"]]:
+                    tracking_llm_novelty[idea["Name"]][j+1] = {}
+
+                tracking_llm_novelty[idea["Name"]][j+1]["llm_response"] = text
 
                 if "decision made: novel" in text.lower():
                     print("Decision made: novel after round", j)
                     novel = True
+                    #tracking
+                    tracking_llm_novelty[idea["Name"]][j+1]["final_decision"] = novel
                     break
                 if "decision made: not novel" in text.lower():
                     print("Decision made: not novel after round", j)
+                    #tracking
+                    tracking_llm_novelty[idea["Name"]][j+1]["final_decision"] = novel
                     break
 
                 ## PARSE OUTPUT
@@ -487,19 +514,20 @@ def check_idea_novelty(
 
 
                 # tracking
-                tracking_data.append({
-                    "idea" : idea["Name"],
-                    "iteration": j+1,
-                    "generated_query" : query
-                })
-
-                # tracking
-                retrieved_papers = []
+                tracking_llm_novelty[idea["Name"]][j+1]["generated_query"] = query
 
                 papers = search_for_papers(query, result_limit=10, engine=engine)
+
+                #tracking
+                if j+1 not in retrieved_papers[idea["Name"]]:
+                    retrieved_papers[idea["Name"]][j+1] = {"query" : query, "papers" : []}
+
                 if papers is None:
                     papers_str = "No papers found."
-                    retrieved_papers.append({"message" : "No papers found."})
+                    # tracking
+                    retrieved_papers[idea["Name"]][j + 1]["papers"].append(
+                        {"message": "No papers found."}
+                        )
 
                 paper_strings = []
                 for i, paper in enumerate(papers):  # 10 papers (limit numbers set in the search_for_paper)
@@ -515,32 +543,23 @@ def check_idea_novelty(
                         )
                     )
                     # tracking
-                    retrieved_papers.append({
-                        "no." : i,
-                        "title" : paper["title"],
-                        "authors" : paper["authors"],
-                        "venue" : paper["venue"],
-                        "year" : paper["year"],
-                        "cites" : paper["citationCount"],
-                        "abstract" : paper["abstract"],
+                    retrieved_papers[idea["Name"]][j + 1]["papers"].append({
+                        "no": i,
+                        "title": paper["title"],
+                        "authors": paper["authors"],
+                        "venue": paper["venue"],
+                        "year": paper["year"],
+                        "cites": paper["citationCount"],
+                        "abstract": paper["abstract"]
                     })
                 papers_str = "\n\n".join(paper_strings) # feed into LLM to judge novelty of an idea.
 
             except Exception as e:
                 print(f"Error: {e}")
-                tracking_data.append({
-                    "idea" : idea["Name"],
-                    "iteration" : j+1,
-                    "error" : str(e)
-                })
+                retrieved_papers[idea["Name"]][j+1] = {"error" : str(e)}
                 continue
 
         idea["novel"] = novel
-        # tracking
-        tracking_data.append({
-            "idea" : idea["Name"],
-            "final_decision" : "Novel" if novel else "Not Novel"
-        })
 
     # Save results to JSON file
     results_file = osp.join(base_dir, "ideas.json")
@@ -548,9 +567,9 @@ def check_idea_novelty(
         json.dump(ideas, f, indent=4)
     
     # tracking
-    tracking_file = osp.join(base_dir, "novelty_check_tracking.json")
-    with open(tracking_file, "w") as f:
-        json.dump(tracking_data, f, indent=4)
+    tracking_llm_novelty_file = osp.join(base_dir, "llm_novelty_check_tracking.json")
+    with open(tracking_llm_novelty_file, "w") as f:
+        json.dump(tracking_llm_novelty, f, indent=4)
     
     retrieve_paper_file = osp.join(base_dir, "retrieved_paper_tracking.json")
     with open(retrieve_paper_file, "w") as f:
