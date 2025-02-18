@@ -96,6 +96,9 @@ def generate_ideas(
             print("Error decoding existing ideas. Generating new ideas.")
 
     idea_str_archive = []
+    # tracking
+    tracking_data = []
+
     with open(osp.join(base_dir, "seed_ideas.json"), "r") as f:
         seed_ideas = json.load(f)
     for seed_idea in seed_ideas:
@@ -153,9 +156,20 @@ def generate_ideas(
                             json_output is not None
                     ), "Failed to extract JSON from LLM output"
                     print(json_output)
+                    
+                    # tracking
+                    tracking_data.append({
+                        "idea_name": json_output["Name"],
+                        "iteration": j+2,
+                        "generated_idea": json_output,
+                        "converged": False,
+                    })
 
                     if "I am done" in text:
                         print(f"Idea generation converged after {j + 2} iterations.")
+                        
+                        # tracking
+                        tracking_data[-1]["converged"] = True
                         break
 
             idea_str_archive.append(json.dumps(json_output))
@@ -537,6 +551,11 @@ def check_idea_novelty(
     tracking_file = osp.join(base_dir, "novelty_check_tracking.json")
     with open(tracking_file, "w") as f:
         json.dump(tracking_data, f, indent=4)
+    
+    retrieve_paper_file = osp.join(base_dir, "retrieved_paper_tracking.json")
+    with open(retrieve_paper_file, "w") as f:
+        json.dump(retrieved_papers, f, indent=4)
+
 
     return ideas
 
