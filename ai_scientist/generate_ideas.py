@@ -416,6 +416,9 @@ def check_idea_novelty(
         prompt = json.load(f)
         task_description = prompt["task_description"]
 
+    # tracking 
+    tracking_data = []
+
     for idx, idea in enumerate(ideas):
         if "novel" in idea:
             print(f"Skipping idea {idx}, already checked.")
@@ -445,6 +448,14 @@ def check_idea_novelty(
                     ),
                     msg_history=msg_history,
                 )
+
+                # tracking
+                tracking_data.append({
+                    "idea" : idea["Name"],
+                    "iteration" : j+1,
+                    "llm_response" : text
+                })
+
                 if "decision made: novel" in text.lower():
                     print("Decision made: novel after round", j)
                     novel = True
@@ -459,9 +470,22 @@ def check_idea_novelty(
 
                 ## SEARCH FOR PAPERS
                 query = json_output["Query"]
+
+
+                # tracking
+                tracking_data.append({
+                    "idea" : idea["Name"],
+                    "iteration": j+1,
+                    "generated_query" : query
+                })
+
+                # tracking
+                retrieved_papers = []
+
                 papers = search_for_papers(query, result_limit=10, engine=engine)
                 if papers is None:
                     papers_str = "No papers found."
+                    retrieved_papers.append({"message" : "No papers found."})
 
                 paper_strings = []
                 for i, paper in enumerate(papers):  # 10 papers (limit numbers set in the search_for_paper)
@@ -476,18 +500,43 @@ def check_idea_novelty(
                             abstract=paper["abstract"],
                         )
                     )
+                    # tracking
+                    retrieved_papers.append({
+                        "no." : i,
+                        "title" : paper["title"],
+                        "authors" : paper["authors"],
+                        "venue" : paper["venue"],
+                        "year" : paper["year"],
+                        "cites" : paper["citationCount"],
+                        "abstract" : paper["abstract"],
+                    })
                 papers_str = "\n\n".join(paper_strings) # feed into LLM to judge novelty of an idea.
 
             except Exception as e:
                 print(f"Error: {e}")
+                tracking_data.append({
+                    "idea" : idea["Name"],
+                    "iteration" : j+1,
+                    "error" : str(e)
+                })
                 continue
 
         idea["novel"] = novel
+        # tracking
+        tracking_data.append({
+            "idea" : idea["Name"],
+            "final_decision" : "Novel" if novel else "Not Novel"
+        })
 
     # Save results to JSON file
     results_file = osp.join(base_dir, "ideas.json")
     with open(results_file, "w") as f:
         json.dump(ideas, f, indent=4)
+    
+    # tracking
+    tracking_file = osp.join(base_dir, "novelty_check_tracking.json")
+    with open(tracking_file, "w") as f:
+        json.dump(tracking_data, f, indent=4)
 
     return ideas
 
