@@ -1,0 +1,10 @@
+[
+  {
+    "Name": "adaptive_block_size",
+    "Title": "Adaptive Block Size: Dynamic Context Window Adjustment for Efficient Training",
+    "Experiment": "Modify the model to dynamically adjust its block size during training, starting with a smaller block size and gradually increasing it. This could potentially lead to faster initial training and better long-range dependency learning.",
+    "Interestingness": 6,
+    "Feasibility": 4,
+    "Novelty": 4
+  }
+]

@@ -1,0 +1,11 @@
+[
+    {
+        "Name": "frequency_based_forgetting_gpt",
+        "Title": "Frequency-Based Forgetting in GPT: Exploring the Impact of Forgetting on Language Model Performance",
+        "Experiment": "Modify the GPT model to incorporate a frequency-based forgetting mechanism that forgets input tokens during training. Train the model with this forgetting mechanism and evaluate its performance on various tasks, including language modeling, text generation, and question answering. Investigate the interactions between the forgetting mechanism and other model components, such as the attention mechanism.",
+        "Interestingness": 9,
+        "Feasibility": 8,
+        "Novelty": 9,
+        "novel": true
+    }
+]
