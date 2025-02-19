@@ -200,6 +200,10 @@ def generate_ideas(
     with open(osp.join(base_dir, "ideas.json"), "w") as f:
         json.dump(ideas, f, indent=4)
 
+    with open(osp.join(base_dir, "tracking_gen_idea.json"), "w") as f:
+        json.dump(tracking_gen_idea, f, indent=4)
+
+
     return ideas
 
 
