@@ -102,7 +102,7 @@ def generate_ideas(
     with open(osp.join(base_dir, "seed_ideas.json"), "r") as f:
         seed_ideas = json.load(f)
     for seed_idea in seed_ideas:
-        idea_str_archive.append(json.dumps(seed_idea))
+        idea_str_archive.append(json.dumps(seed_idea)) # only seed idea is added to archived idea
 
     with open(osp.join(base_dir, "experiment.py"), "r") as f:
         code = f.read()
@@ -116,7 +116,7 @@ def generate_ideas(
         print()
         print(f"Generating idea {_ + 1}/{max_num_generations}")
         try:
-            prev_ideas_string = "\n\n".join(idea_str_archive)
+            prev_ideas_string = "\n\n".join(idea_str_archive) # all previous generated ideas are appended to generate new idea 
 
             msg_history = []
             print(f"Iteration 1/{num_reflections}")
